@@ -1,0 +1,34 @@
+FROM hxsoong/kylin:v10-sp2 as downloader
+
+RUN rm -f /etc/yum.repos.d/kylin.repo /etc/yum.repos.d/CentOS-Base.repo && \
+    yum clean all && \
+    (yum makecache || (sleep 5 && yum makecache))
+RUN yum install -y --downloadonly --downloaddir=/root/down \
+    bash-completion \
+    conntrack \
+    conntrack-tools \
+    ipset \
+    ipvsadm \
+    libseccomp \
+    psmisc \
+    socat \
+    rsync \
+    ebtables \
+    chrony \
+    iproute-tc \
+    tar \
+    unzip \
+    curl \
+    libnetfilter_cthelper \
+    libnetfilter_cttimeout \
+    libnetfilter_queue \
+    --setopt=tsflags=nodocs \
+    --skip-broken && \
+    cd /root/down && rm -f systemd* && \
+    tar zcvf /tmp/kylin_v10_sp2.tgz *.rpm
+# storing packages on alpine
+
+FROM alpine:3.20
+ENV SYS_PKG_VER=1.0.1
+COPY --from=downloader /tmp/*.tgz /packages/
+CMD [ "tail", "-f", "/dev/null" ]
