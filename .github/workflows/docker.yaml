@@ -1,11 +1,11 @@
-  name: Build and Push Docker Image to Aliyun ACR
+	name: Build and Push Docker Image to Aliyun ACR
 	on:
 	  push:
-	    branches: [ "main" ]
+	    branches: ["main"]
 	  workflow_dispatch:
 	env:
 	  # ================= 配置区域 =================
-	  # 目标平台架构: 
+	  # 目标平台架构:
 	  # x86_64 (AMD64) 请填写: linux/amd64
 	  # ARM64 请填写: linux/arm64
 	  PLATFORMS: linux/amd64
@@ -19,14 +19,12 @@
 	      # 1. 拉取代码
 	      - name: Checkout code
 	        uses: actions/checkout@v4
-	      # 2. 构建前清理环境 (新增步骤)
-	      # 目的：清除 GitHub Actions runner 中预装的一些不需要的大文件，腾出空间
+	      # 2. 构建前清理环境
 	      - name: Free disk space (Pre-build)
 	        run: |
 	          echo "清理前的磁盘状态："
 	          df -hT
 	          echo "正在清理不需要的软件包和目录..."
-	          # 删除预装的大型工具链 (如 Azure CLI, Android SDK, .NET 等，通常占用数GB)
 	          sudo rm -rf /usr/share/dotnet
 	          sudo rm -rf /usr/local/lib/android/sdk
 	          sudo rm -rf /opt/ghc
@@ -61,14 +59,11 @@
 	            ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 	      # 7. 构建后清理缓存和镜像
 	      - name: Clean up docker resources (Post-build)
-	        if: always() # 即使构建失败也尝试清理，防止占着空间影响下次运行
+	        if: always()
 	        run: |
 	          echo "开始清理 Docker 构建缓存..."
-	          # 清理所有构建缓存
 	          docker builder prune -af
-	          # 清理所有悬空镜像和未被使用的镜像
 	          docker image prune -af
-	          # 彻底清理系统
 	          docker system prune -af
 	          echo "清理完成，最终磁盘状态："
 	          df -hT
