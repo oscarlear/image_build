@@ -1,0 +1,75 @@
+	# .github/workflows/docker-build-push.yml
+	name: Build and Push Docker Image to Aliyun ACR
+	on:
+	  push:
+	    branches: [ "main" ]
+	  workflow_dispatch:
+	env:
+	  # ================= 配置区域 =================
+	  # 目标平台架构: 
+	  # x86_64 (AMD64) 请填写: linux/amd64
+	  # ARM64 请填写: linux/arm64
+	  PLATFORMS: linux/amd64
+	  # 镜像名称定义
+	  IMAGE_NAME: kylin-offline-package
+	  # ===========================================
+	jobs:
+	  build-and-push:
+	    runs-on: ubuntu-latest
+	    steps:
+	      # 1. 拉取代码
+	      - name: Checkout code
+	        uses: actions/checkout@v4
+	      # 2. 构建前清理环境 (新增步骤)
+	      # 目的：清除 GitHub Actions runner 中预装的一些不需要的大文件，腾出空间
+	      - name: Free disk space (Pre-build)
+	        run: |
+	          echo "清理前的磁盘状态："
+	          df -hT
+	          echo "正在清理不需要的软件包和目录..."
+	          # 删除预装的大型工具链 (如 Azure CLI, Android SDK, .NET 等，通常占用数GB)
+	          sudo rm -rf /usr/share/dotnet
+	          sudo rm -rf /usr/local/lib/android/sdk
+	          sudo rm -rf /opt/ghc
+	          sudo rm -rf /opt/hostedtoolcache/CodeQL
+	          echo "清理 Docker 无用资源..."
+	          docker system prune -af --volumes
+	          echo "清理后的磁盘状态："
+	          df -hT
+	      # 3. 设置 QEMU (支持跨平台构建 ARM)
+	      - name: Set up QEMU
+	        uses: docker/setup-qemu-action@v3
+	      # 4. 设置 Docker Buildx
+	      - name: Set up Docker Buildx
+	        uses: docker/setup-buildx-action@v3
+	      # 5. 登录到阿里云 ACR
+	      - name: Login to Aliyun ACR
+	        uses: docker/login-action@v3
+	        with:
+	          registry: ${{ secrets.ALIYUN_REGISTRY }}
+	          username: ${{ secrets.ALIYUN_USERNAME }}
+	          password: ${{ secrets.ALIYUN_PASSWORD }}
+	      # 6. 构建并推送 Docker 镜像
+	      - name: Build and push Docker image
+	        uses: docker/build-push-action@v5
+	        with:
+	          context: .
+	          file: ./kylin/Dockerfile.arm64
+	          platforms: ${{ env.PLATFORMS }}
+	          push: true
+	          tags: |
+	            ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ env.IMAGE_NAME }}:v10_sp2
+	            ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+	      # 7. 构建后清理缓存和镜像
+	      - name: Clean up docker resources (Post-build)
+	        if: always() # 即使构建失败也尝试清理，防止占着空间影响下次运行
+	        run: |
+	          echo "开始清理 Docker 构建缓存..."
+	          # 清理所有构建缓存
+	          docker builder prune -af
+	          # 清理所有悬空镜像和未被使用的镜像
+	          docker image prune -af
+	          # 彻底清理系统
+	          docker system prune -af
+	          echo "清理完成，最终磁盘状态："
+	          df -hT
