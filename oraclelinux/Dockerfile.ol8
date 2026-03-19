@@ -1,0 +1,28 @@
+From oraclelinux:8.6 as downloader
+RUN yum install --downloadonly --downloaddir=/root/down \
+        ansible \
+        bash-completion \
+        conntrack \
+        conntrack-tools \
+        ipset \
+        ipvsadm \
+        libseccomp \
+        psmisc \
+        socat \
+        rsync \
+        ebtables \
+        chrony \
+        iproute-tc \
+        tar \
+        unzip \
+        curl \
+        libnetfilter_cthelper \
+        libnetfilter_cttimeout \
+        libnetfilter_queue \
+        cd /root/down && rm -f systemd* && \
+        tar zcvf /tmp/ol8_offline_package.tgz *.rpm
+
+FROM alpine:3.20
+ENV SYS_PKG_VER=1.0.1
+COPY --from=downloader /tmp/*.tgz /packages/
+CMD [ "tail", "-f", "/dev/null" ]
