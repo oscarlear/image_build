@@ -48,7 +48,7 @@
             platforms: ${{ env.PLATFORMS }}
             push: true
             tags: |
-              ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ env.IMAGE_NAME }}:v10_sp2
+              ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ env.IMAGE_NAME }}:v10_sp3
               ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
         - name: Clean up docker resources
           if: always()

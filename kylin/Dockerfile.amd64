@@ -1,4 +1,4 @@
-FROM hxsoong/kylin:v10-sp2 as downloader
+FROM hxsoong/kylin:v10-sp3 as downloader
 
 RUN rm -f /etc/yum.repos.d/kylin.repo /etc/yum.repos.d/CentOS-Base.repo && \
     yum clean all && \
@@ -25,7 +25,7 @@ RUN yum install -y --downloadonly --downloaddir=/root/down \
     --setopt=tsflags=nodocs \
     --skip-broken && \
     cd /root/down && rm -f systemd* && \
-    tar zcvf /tmp/kylin_v10_sp2.tgz *.rpm
+    tar zcvf /tmp/kylin_v10_sp3.tgz *.rpm
 # storing packages on alpine
 
 FROM alpine:3.20
