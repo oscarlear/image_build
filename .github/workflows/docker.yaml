@@ -6,7 +6,9 @@
     workflow_dispatch:
   env:
     PLATFORMS: linux/amd64
-    IMAGE_NAME: kylin-offline-package
+    IMAGE_NAME: oel8-offline-package
+    FILE_NAME: ./oraclelinux/Dockerfile.ol8
+    VERSION: 8.6
   jobs:
     build-and-push:
       runs-on: ubuntu-latest
@@ -23,13 +25,6 @@
             df -hT
         - name: Checkout code
           uses: actions/checkout@v4
-        - name: Check Dockerfile existence
-          run: |
-            echo "当前目录结构："
-            ls -la
-            echo "kylin 目录内容："
-            ls -la ./kylin/
-            echo "请确认上方列表中是否存在你的 Dockerfile 文件名"
         - name: Set up QEMU
           uses: docker/setup-qemu-action@v3
         - name: Set up Docker Buildx
@@ -44,12 +39,11 @@
           uses: docker/build-push-action@v5
           with:
             context: .
-            file: ./kylin/Dockerfile.amd64
+            file: ${{ env.FILE_NAME }}
             platforms: ${{ env.PLATFORMS }}
             push: true
             tags: |
-              ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ env.IMAGE_NAME }}:v10_sp3
-              ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+              ${{ secrets.ALIYUN_REGISTRY }}/${{ secrets.ALIYUN_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
         - name: Clean up docker resources
           if: always()
           run: |
