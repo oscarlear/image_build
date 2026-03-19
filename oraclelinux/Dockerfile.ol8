@@ -1,4 +1,7 @@
 From oraclelinux:8.6 as downloader
+
+RUN yum clean all && \
+    (yum makecache || (sleep 5 && yum makecache))
 RUN yum install --downloadonly --downloaddir=/root/down \
         ansible \
         bash-completion \
@@ -19,6 +22,8 @@ RUN yum install --downloadonly --downloaddir=/root/down \
         libnetfilter_cthelper \
         libnetfilter_cttimeout \
         libnetfilter_queue \
+        --setopt=tsflags=nodocs \
+        --skip-broken && \
         cd /root/down && rm -f systemd* && \
         tar zcvf /tmp/ol8_offline_package.tgz *.rpm
 
