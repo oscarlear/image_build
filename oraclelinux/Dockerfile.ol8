@@ -1,8 +1,18 @@
-From oraclelinux:8.6 as downloader
+FROM oraclelinux:8.6 as downloader
 
+# 1. 清理缓存并重建缓存 (提高命中率)
 RUN yum clean all && \
-    (yum makecache || (sleep 5 && yum makecache))
-RUN yum install --downloadonly --downloaddir=/root/down \
+    yum makecache
+
+# 2. 安装 EPEL 源 (为了获取 ansible) 并创建下载目录
+# 注意：oraclelinux:8.6 镜像通常自带 yum 配置，直接安装 epel-release 即可
+RUN yum install -y epel-release && \
+    mkdir -p /root/down
+
+# 3. 下载包、清理、打包
+# 关键点：所有操作必须在同一个 RUN 指令中，并用 && 连接
+# 如果 ansible 依然下载失败，构建会在此处停止，方便排查
+RUN yum install --downloadonly --downloaddir=/root/down -y \
         ansible \
         bash-completion \
         conntrack \
@@ -23,11 +33,18 @@ RUN yum install --downloadonly --downloaddir=/root/down \
         libnetfilter_cttimeout \
         libnetfilter_queue \
         --setopt=tsflags=nodocs \
-        --skip-broken && \
-        cd /root/down && rm -f systemd* && \
-        tar zcvf /tmp/ol8_offline_package.tgz *.rpm
+        --skip-broken \
+    && cd /root/down \
+    && rm -f systemd* \
+    && tar zcvf /tmp/ol8_offline_package.tgz *.rpm
 
+# --- 第二阶段 ---
 FROM alpine:3.20
 ENV SYS_PKG_VER=1.0.1
-COPY --from=downloader /tmp/*.tgz /packages/
+
+# 创建接收目录 (虽然 COPY 会自动创建父目录，但显式创建是个好习惯)
+RUN mkdir -p /packages
+
+COPY --from=downloader /tmp/ol8_offline_package.tgz /packages/
+
 CMD [ "tail", "-f", "/dev/null" ]
