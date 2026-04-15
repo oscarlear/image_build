@@ -2,7 +2,7 @@ FROM ubuntu:22.04 AS downloader
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y apt-utils
-WORKDIR /tmp
+WORKDIR /packages
 RUN apt-get download \
     keepalived \
     libnl-3-200 \
@@ -15,13 +15,14 @@ RUN apt-get download \
     libdb5.3 \
     libsensors5 \
     libperl5.34 \
-    && ls -la /tmp/
+    && ls -la //packages/
 
 # Create tar.gz archive
-RUN tar -zcvf /tmp/keepalived-packages.tgz -C /tmp .
+RUN tar -zcvf /tmp/keepalived-packages.tgz -C /packages .
 
 
 FROM alpine:3.20
 ENV SYS_PKG_VER=1.0.1
 COPY --from=downloader /tmp/*.tgz /packages/
+RUN tar -tzf /packages/keepalived-packages.tgz | head
 CMD [ "tail", "-f", "/dev/null" ]
