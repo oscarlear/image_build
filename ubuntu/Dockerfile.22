@@ -3,26 +3,17 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y apt-utils
 WORKDIR /packages
-RUN apt-get download \
-    keepalived \
-    libnl-3-200 \
-    libnl-genl-3-200 \
-    libnl-route-3-200 \
-    libsnmp40 \
-    libpci3 \
-    libkmod2 \
-    libwrap0 \
-    libdb5.3 \
-    libsensors5 \
-    libperl5.34 \
-    && ls -la //packages/
+RUN apt-get dpkg-dev dpkg libdpkg-perl perl perl-base perl-modules-5.34 \
+    liblocale-gettext-perl libtext-charwidth-perl libtext-wrapi18n-perl \
+    libicu70 libxml2 liblzma5 zlib1g libbz2-1.0 libgdbm6 libperl5.34
+    && ls -la /packages/
 
 # Create tar.gz archive
-RUN tar -zcvf /tmp/keepalived-packages.tgz -C /packages .
+RUN tar -zcvf /tmp/dpkg-packages.tgz -C /packages .
 
 
 FROM alpine:3.20
 ENV SYS_PKG_VER=1.0.1
 COPY --from=downloader /tmp/*.tgz /packages/
-RUN tar -tzf /packages/keepalived-packages.tgz | head
+RUN tar -tzf /packages/dpkg-packages.tgz | head
 CMD [ "tail", "-f", "/dev/null" ]
