@@ -18,7 +18,7 @@ RUN apt-get download \
     && ls -la /tmp/
 
 # Create tar.gz archive
-RUN tar -zcvf /keepalived-packages.tgz -C /tmp .
+RUN tar -zcvf /tmp/keepalived-packages.tgz -C /tmp .
 
 
 FROM alpine:3.20
