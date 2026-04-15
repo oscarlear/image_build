@@ -7,7 +7,7 @@
   env:
     PLATFORMS: linux/amd64
     IMAGE_NAME: ubuntu-offline-package
-    FILE_NAME: ./ubunut/Dockerfile.22
+    FILE_NAME: ./ubuntu/Dockerfile.22
     VERSION: 22.04
   jobs:
     build-and-push:
