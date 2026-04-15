@@ -1,0 +1,27 @@
+FROM ubuntu:22.04 AS downloader
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y apt-utils
+WORKDIR /tmp
+RUN apt-get download \
+    keepalived \
+    libnl-3-200 \
+    libnl-genl-3-200 \
+    libnl-route-3-200 \
+    libsnmp40 \
+    libpci3 \
+    libkmod2 \
+    libwrap0 \
+    libdb5.3 \
+    libsensors5 \
+    libperl5.34 \
+    && ls -la /tmp/
+
+# Create tar.gz archive
+RUN tar -zcvf /keepalived-packages.tgz -C /tmp .
+
+
+FROM alpine:3.20
+ENV SYS_PKG_VER=1.0.1
+COPY --from=downloader /tmp/*.tgz /packages/
+CMD [ "tail", "-f", "/dev/null" ]

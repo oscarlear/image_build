@@ -6,7 +6,7 @@
     workflow_dispatch:
   env:
     PLATFORMS: linux/amd64
-    IMAGE_NAME: kylin-offline-package
+    IMAGE_NAME: ubuntu-offline-package
   jobs:
     build-and-push:
       runs-on: ubuntu-latest
