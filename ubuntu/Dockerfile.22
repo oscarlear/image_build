@@ -1,22 +1,30 @@
 FROM ubuntu:22.04
-
 ENV DEBIAN_FRONTEND=noninteractive
-
 WORKDIR /export
-RUN apt-get update && \
-    apt-get install -y wget && \
-    # 添加 Percona 仓库
-    wget -q https://repo.percona.com/apt/percona-release_latest.generic_all.deb && \
-    dpkg -i percona-release_latest.generic_all.deb && \
-    apt-get update && \
-    # 下载 XtraBackup 及依赖
-    apt-get download percona-xtrabackup-80 && \
-    apt-cache depends percona-xtrabackup-80 | grep Depends | awk '{print $2}' | sort -u | xargs -r apt-get download && \
-    # 清理
-    rm -f percona-release_latest.generic_all.deb && \
-    rm -rf /var/lib/apt/lists/*
+# Step 1: Install wget
+RUN apt-get update && apt-get install -y wget gnupg2 lsb-release && rm -rf /var/lib/apt/lists/*
+# Step 2: Download and install Percona repo
+RUN wget -q https://repo.percona.com/apt/percona-release_latest.generic_all.deb -O /tmp/percona.deb && \
+    dpkg -i /tmp/percona.deb && \
+    rm /tmp/percona.deb
+# Step 3: Enable xtrabackup repo and update
+RUN percona-release enable-only tools release && \
+    apt-get update
+# Step 4: Download xtrabackup and all dependencies
+RUN apt-get install -y --print-uris percona-xtrabackup-80 2>/dev/null | \
+    grep -oE "http[s]?://[^'\"]+" | \
+    while read url; do wget -q "$url" -O "$(basename $url)"; done || \
+    apt-get download percona-xtrabackup-80
+# Step 5: Download dependencies using apt-rdepends
+RUN apt-get install -y apt-rdepends && \
+    apt-rdepends percona-xtrabackup-80 2>/dev/null | \
+    grep -v "^ " | \
+    sort -u | \
+    grep -vE "^(dpkg|debconf|libc6|libgcc-s1|libstdc++6|bash|coreutils|grep|gzip|sed|tar|util-linux|zlib1g|debianutils|findutils|hostname|init-system-help
+ers|login|mawk|ncurses|passwd|perl-base|base-files|base-passwd)" | \
+    xargs -r apt-get download 2>/dev/null || true
+# Step 6: Create archive
 RUN tar -zcvf /xtrabackup-packages.tgz .
-
 FROM alpine:3.20
 COPY --from=0 /xtrabackup-packages.tgz /packages/
 CMD ["tail", "-f", "/dev/null"]
