@@ -1,34 +1,18 @@
-# 第一阶段：下载与打包
 FROM ubuntu:22.04 AS downloader
 
-# 合并环境变量，减少层数
-ENV DEBIAN_FRONTEND=noninteractive \
-    PKG_NAME=keepalived
+ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /export
 
-# 1. 一次性安装工具并清理缓存
-# 2. 这里的 grep 逻辑增加了过滤，去掉了基础系统包，只保留核心依赖
-RUN apt-get update && apt-get install -y apt-rdepends \
-    && apt-get download $(apt-rdepends $PKG_NAME | grep -v "^ " | \
-       grep -vE "debconf|libc6|gcc|base-files|base-passwd|coreutils|dash|debianutils|diffutils|dpkg|findutils|grep|gzip|hostname|init-system-helpers|login|mawk|ncurses|perl-base|sed|tar|util-linux") \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+      apt-get download keepalived && \
+      apt-cache depends keepalived | grep Depends | awk '{print $2}' | sort -u | xargs -r apt-get download && \
+      rm -rf /var/lib/apt/lists/*
 
-# 3. 打包。加上 -v 可以看到打包了哪些文件，方便排查
 RUN tar -zcvf /keepalived-packages.tgz .
 
-# 第二阶段：最终镜像
 FROM alpine:3.20
-LABEL maintainer="Gemini-Optimizer"
 
-# 设置版本标签
-ENV SYS_PKG_VER=1.0.1
-
-# 仅拷贝压缩包
 COPY --from=downloader /keepalived-packages.tgz /packages/
 
-# 验证压缩包完整性（可选）
-RUN ls -lh /packages/keepalived-packages.tgz
-
-# 保持容器轻量，使用简练的启动命令
-CMD ["sh", "-c", "echo 'Packages are in /packages/keepalived-packages.tgz'; tail -f /dev/null"]
+CMD ["tail", "-f", "/dev/null"]
