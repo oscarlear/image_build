@@ -1,18 +1,15 @@
 FROM ubuntu:22.04 AS downloader
-
 ENV DEBIAN_FRONTEND=noninteractive
-
 WORKDIR /export
-
 RUN apt-get update && \
-      apt-get download keepalived && \
-      apt-cache depends keepalived | grep Depends | awk '{print $2}' | sort -u | xargs -r apt-get download && \
-      rm -rf /var/lib/apt/lists/*
-
+    apt-get download keepalived && \
+    # 直接依赖
+    apt-cache depends keepalived | grep Depends | awk '{print $2}' | sort -u | xargs -r apt-get download && \
+    # 间接依赖（libsnmp40 的依赖 libsnmp-base）
+    apt-cache depends libsnmp40 | grep Depends | awk '{print $2}' | sort -u | xargs -r apt-get download && \
+    rm -rf /var/lib/apt/lists/*
 RUN tar -zcvf /keepalived-packages.tgz .
 
 FROM alpine:3.20
-
 COPY --from=downloader /keepalived-packages.tgz /packages/
-
 CMD ["tail", "-f", "/dev/null"]
