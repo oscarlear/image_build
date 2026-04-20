@@ -1,15 +1,22 @@
-FROM ubuntu:22.04 AS downloader
+FROM ubuntu:22.04
+
 ENV DEBIAN_FRONTEND=noninteractive
+
 WORKDIR /export
 RUN apt-get update && \
-    apt-get download keepalived && \
-    # 直接依赖
-    apt-cache depends keepalived | grep Depends | awk '{print $2}' | sort -u | xargs -r apt-get download && \
-    # 间接依赖（libsnmp40 的依赖 libsnmp-base）
-    apt-cache depends libsnmp40 | grep Depends | awk '{print $2}' | sort -u | xargs -r apt-get download && \
+    apt-get install -y wget && \
+    # 添加 Percona 仓库
+    wget -q https://repo.percona.com/apt/percona-release_latest.generic_all.deb && \
+    dpkg -i percona-release_latest.generic_all.deb && \
+    apt-get update && \
+    # 下载 XtraBackup 及依赖
+    apt-get download percona-xtrabackup-80 && \
+    apt-cache depends percona-xtrabackup-80 | grep Depends | awk '{print $2}' | sort -u | xargs -r apt-get download && \
+    # 清理
+    rm -f percona-release_latest.generic_all.deb && \
     rm -rf /var/lib/apt/lists/*
-RUN tar -zcvf /keepalived-packages.tgz .
+RUN tar -zcvf /xtrabackup-packages.tgz .
 
 FROM alpine:3.20
-COPY --from=downloader /keepalived-packages.tgz /packages/
+COPY --from=0 /xtrabackup-packages.tgz /packages/
 CMD ["tail", "-f", "/dev/null"]
