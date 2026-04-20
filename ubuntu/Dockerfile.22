@@ -6,8 +6,7 @@ WORKDIR /export
 
 # Download XtraBackup 8.0.35 (for MySQL 8.0.x)
 RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
-RUN wget -q https://downloads.percona.com/downloads/Percona-XtraBackup-80/Percona-XtraBackup-8.0.35/binary/debian/ubuntu22.04/x86_64/percona-xtrabackup-80
-_8.0.35-30.jammy.x86_64.deb
+RUN wget -q https://downloads.percona.com/downloads/Percona-XtraBackup-80/Percona-XtraBackup-8.0.35/binary/debian/ubuntu22.04/x86_64/percona-xtrabackup-80_8.0.35-30.jammy.x86_64.deb
 
 # Download missing dependencies (libev4, libsnappy1v5)
 RUN apt-get update && apt-get download libev4 libsnappy1v5 && rm -rf /var/lib/apt/lists/*
