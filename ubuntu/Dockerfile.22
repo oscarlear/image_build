@@ -1,18 +1,17 @@
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-
 WORKDIR /export
 
-# Download XtraBackup 8.0.35 (for MySQL 8.0.x)
-RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
-RUN wget -q https://downloads.percona.com/downloads/Percona-XtraBackup-80/Percona-XtraBackup-8.0.35/binary/debian/ubuntu22.04/x86_64/percona-xtrabackup-80_8.0.35-30.jammy.x86_64.deb
-
-# Download missing dependencies (libev4, libsnappy1v5)
-RUN apt-get update && apt-get download libev4 libsnappy1v5 && rm -rf /var/lib/apt/lists/*
-
+RUN apt-get update && apt-get install -y wget gnupg2 lsb-release && rm -rf /var/lib/apt/lists/*
+# Add Percona repository
+RUN wget -qO - https://repo.percona.com/apt/percona-release_latest.generic_all.deb | dpkg -i -
+# Enable xtrabackup repository
+RUN percona-release enable-only tools release
+# Download packages
+RUN apt-get update && apt-get download percona-xtrabackup-80 libev4 libsnappy1v5 && rm -rf /var/lib/apt/lists/*
 # Create archive
-RUN tar -zcvf /xtrabackup-packages.tgz .
+RUN tar -zcvf /xtrabackup-packages.tgz *.deb
 
 FROM alpine:3.20
 COPY --from=0 /xtrabackup-packages.tgz /packages/
