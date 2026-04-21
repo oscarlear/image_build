@@ -19,7 +19,7 @@ RUN wget -q https://repo.percona.com/apt/percona-release_latest.generic_all.deb 
 
 # 3. 使用 apt-get install 安装配置包 (比 dpkg 更聪明，能自动处理依赖)
 RUN apt-get update && \
-    apt-get install -y ./tmp/percona-repo.deb && \
+    apt-get install -y /tmp/percona-repo.deb && \
     rm /tmp/percona-repo.deb
 
 # 4. 启用仓库并更新
