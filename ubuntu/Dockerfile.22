@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /export
 
-# 1. 安装基础工具
+# 1. 安装基础依赖
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg2 \
@@ -13,21 +13,19 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. 安装 Percona 仓库工具
+# 2. 安装 Percona 仓库工具包
 RUN wget -q https://repo.percona.com/apt/percona-release_latest.generic_all.deb -O /tmp/percona-release.deb \
-    && apt-get install -y /tmp/percona-release.deb \
+    && apt-get install -y ./tmp/percona-release.deb \
     && rm /tmp/percona-release.deb
 
-# 3. 启用仓库并更新索引
+# 3. 启用 tools 仓库并更新索引 (这步最关键，决定了后面能不能找到包)
 RUN percona-release enable-only tools release && apt-get update
 
-# 4. 【核心改动】使用 --download-only 模式
-# 这会自动下载 xtrabackup 及其【所有】缺失的依赖包（包括你之前缺的 Perl 模块和 curl 开发库）
-# 这里我们指定你截图中看到的那个精确版本
-RUN apt-get install --download-only -y \
-    percona-xtrabackup-80=8.0.35-35-1.jammy
+# 4. 【核心改动】去掉版本号后缀，只写包名！
+# --download-only 会自动把 xtrabackup 及其依赖（perl, libcurl, libev 等）全部下到缓存里
+RUN apt-get install --download-only -y percona-xtrabackup-80
 
-# 5. 将缓存目录中下载好的所有 .deb 包（含依赖）拷贝到当前目录进行打包
+# 5. 把下载好的所有 .deb (包含主程序和所有缺失组件) 收集起来打包
 RUN cp /var/cache/apt/archives/*.deb . && \
     tar -zcvf /xtrabackup-packages.tgz *.deb
 
