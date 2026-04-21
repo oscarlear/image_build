@@ -4,30 +4,29 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /export
 
-# 1. 提前安装好必要的依赖工具，这是关键！
-# lsb-release, gnupg2, ca-certificates 是配置仓库脚本必须的
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+# 1. 安装基础工具：确保有安装 deb 包所需的依赖环境
+RUN apt-get update && apt-get install -y \
     wget \
     gnupg2 \
     lsb-release \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. 下载仓库配置包
-RUN wget -q https://repo.percona.com/apt/percona-release_latest.generic_all.deb -O /tmp/percona-repo.deb
+# 2. 下载仓库配置包 (保存为 percona-release.deb)
+RUN wget -q https://repo.percona.com/apt/percona-release_latest.generic_all.deb -O /tmp/percona-release.deb
 
-# 3. 使用 apt-get install 安装配置包 (比 dpkg 更聪明，能自动处理依赖)
-RUN apt-get update && \
-    apt-get install -y /tmp/percona-repo.deb && \
-    rm /tmp/percona-repo.deb
+# 3. 使用 dpkg -i 安装 (最直接的方式)
+# 如果 dpkg 报错说缺少依赖，apt-get install -f 会自动下载缺失的依赖并修复
+RUN dpkg -i /tmp/percona-release.deb && \
+    apt-get update && \
+    apt-get install -f -y && \
+    rm /tmp/percona-release.deb
 
 # 4. 启用仓库并更新
 RUN percona-release enable-only tools release && apt-get update
 
 # 5. 下载 XtraBackup 及其依赖
-# 注意：使用 apt-get download 确实只下载该包。
-# 如果你需要打包安装，建议以后安装时配合 apt-get install -f 使用
+# 注意：这里我们明确指定版本字符串，确保能下载到
 RUN apt-get download percona-xtrabackup-80=8.0.35-35-1.focal libev4 libsnappy1v5
 
 # 6. 打包
