@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /export
 
-# 1. 关键：把 curl 加进去！同时保留其他必要依赖
+# 1. 安装必要的系统工具
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg2 \
@@ -13,22 +13,19 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. 下载仓库配置包
-RUN wget -q https://repo.percona.com/apt/percona-release_latest.generic_all.deb -O /tmp/percona-release.deb
+# 2. 安装 Percona 仓库配置工具
+RUN wget -q https://repo.percona.com/apt/percona-release_latest.generic_all.deb -O /tmp/percona-release.deb \
+    && apt-get install -y /tmp/percona-release.deb \
+    && rm /tmp/percona-release.deb
 
-# 3. 这里使用 apt-get install 就可以直接成功了
-# 因为上面已经装好了 curl，现在不再缺依赖，且绝对路径不会报错
-RUN apt-get install -y /tmp/percona-release.deb && rm /tmp/percona-release.deb
-
-# 4. 启用仓库并更新
+# 3. 关键点：启用仓库并让它自动适配你的系统 (Ubuntu 22.04 会自动关联到 jammy 源)
 RUN percona-release enable-only tools release && apt-get update
 
-# 5. 下载 XtraBackup 及其依赖
-# 注意：我移除了 .focal 后缀，因为 Ubuntu 22.04 (Jammy) 源里的版本号可能不带 .focal
-# 如果还是报找不到版本，请运行 'apt-cache madison percona-xtrabackup-80' 查看正确的版本字符串
-RUN apt-get download percona-xtrabackup-80=8.0.35-35-1.jammy libev4 libsnappy1v5
+# 4. 下载包：直接下载，apt 会自动根据 Ubuntu 22.04 寻找对应的 .jammy 版本
+# 这样你就不用纠结是 focal 还是 jammy 了
+RUN apt-get download percona-xtrabackup-80 libev4 libsnappy1v5
 
-# 6. 打包
+# 5. 打包
 RUN tar -zcvf /xtrabackup-packages.tgz *.deb
 
 FROM alpine:3.20
