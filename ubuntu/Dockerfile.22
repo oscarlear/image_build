@@ -4,24 +4,22 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /export
 
-# 1. 更新索引并安装基础工具
 RUN apt-get update && apt-get install -y wget gnupg2 && rm -rf /var/lib/apt/lists/*
 
-# 2. 下载 Percona repo 包
+# 下载到 /tmp/percona.deb
 RUN wget -q https://repo.percona.com/apt/percona-release_latest.generic_all.deb -O /tmp/percona.deb
 
-# 3. 使用 apt-get 安装 repo
-RUN apt-get update && apt-get install -y ./tmp/percona.deb && rm /tmp/percona.deb
+# 使用 dpkg 安装，然后通过 -f 修复依赖
+RUN dpkg -i /tmp/percona.deb && apt-get update && apt-get install -f -y && rm /tmp/percona.deb
 
-# 4. 启用仓库并更新列表
+# 启用仓库并更新列表
 RUN percona-release enable-only tools release && apt-get update
 
-# 5. 【关键修改】指定版本下载
-# 格式为: apt-get download <package_name>=<version_string>
-# 这里的版本号去掉了架构部分 (_amd64) 和后缀 (.deb)，仅保留版本字符串
+# 下载 XtraBackup
+# 注意：这会下载该版本包本身，但如果你需要该包的所有依赖库，apt-get download 默认是不下载依赖的
 RUN apt-get download percona-xtrabackup-80=8.0.35-35-1.focal libev4 libsnappy1v5
 
-# 6. 创建 archive
+# 创建 archive
 RUN tar -zcvf /xtrabackup-packages.tgz *.deb
 
 FROM alpine:3.20
